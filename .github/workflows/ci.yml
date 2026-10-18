@@ -1,0 +1,114 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  # The unit tests in test/run.js, which run read.lua under a real Lua, and the
+  # repository checks in test/test_repo.py: manifest and entry points, no
+  # symlinks or agent instruction files, no hidden bidi characters, PlainText
+  # on every QML Text, bounded process output, and the marketplace scanner's
+  # file limits.
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - name: Install Lua
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lua5.4
+          sudo ln -sf /usr/bin/lua5.4 /usr/local/bin/lua
+      - name: Unit tests
+        run: node test/run.js
+      - name: Repository checks
+        run: python3 -m unittest discover -s test -v
+
+  # Luddite Scout reviews the repository as GitHub serves it: repository setup,
+  # agent instruction files, hidden Unicode, Actions, dependencies, build-time
+  # code and the Omarchy plugin rules. It runs nothing from this repository.
+  # Fails on any HIGH or MEDIUM finding.
+  scout:
+    if: github.event_name == 'push'
+    needs: test
+    runs-on: ubuntu-latest
+    env:
+      SCOUT_REPO: https://github.com/TechLuddite/Luddite-Scout
+      SCOUT_SHA: d484fb96482e74681adcc42d22b88fb6db26920f
+    steps:
+      - name: Fetch Luddite Scout at a pinned commit
+        run: |
+          git init -q scout
+          git -C scout -c core.hooksPath=/dev/null fetch -q --depth 1 -- "$SCOUT_REPO" "$SCOUT_SHA"
+          test "$(git -C scout rev-parse 'FETCH_HEAD^{commit}')" = "$SCOUT_SHA"
+          git -C scout -c core.hooksPath=/dev/null -c advice.detachedHead=false checkout -q FETCH_HEAD
+      - name: Scan this repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          printf '%s\n' "$GH_TOKEN" \
+            | python3 -I -S scout/bin/scout --json --token-stdin "$GITHUB_REPOSITORY" > report.json
+          python3 -I -S - <<'EOF'
+          import json, os, sys
+          r = json.load(open("report.json"))
+          if "error" in r:
+              sys.exit(f"Scout could not scan: {r['error']}")
+          if r.get("commit") != os.environ["GITHUB_SHA"]:
+              print(f"main moved on to {r.get('commit')}; that push runs its own scan.")
+              sys.exit(0)
+          bad, lines = 0, ["| Check | Severity | Finding | Where |", "|---|---|---|---|"]
+          for check in r.get("checks", []):
+              for f in check.get("findings", []):
+                  sev = f.get("severity", "")
+                  where = f"{f['path']}:{f.get('line', '')}" if f.get("path") else ""
+                  lines.append(f"| {check.get('id')} | {sev} | {f.get('title', '')} | {where} |")
+                  bad += sev in ("high", "medium")
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as out:
+              out.write(f"## Luddite Scout at {r['commit'][:12]}\n\n" + "\n".join(lines) + "\n")
+          print("\n".join(lines))
+          sys.exit(1 if bad else 0)
+          EOF
+
+  # The marketplace's own Automated Security Baseline, the scan a submission
+  # gets, run against the pushed commit. Fails unless it reports `passed` with
+  # no findings and no review capabilities.
+  baseline:
+    if: github.event_name == 'push'
+    needs: test
+    runs-on: ubuntu-latest
+    env:
+      MARKETPLACE_REPO: https://github.com/omacom/omarchy-plugin-marketplace
+      MARKETPLACE_SHA: fd5874893f5f4690570d2d88e8bcfb6df9f30184
+    steps:
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - name: Fetch the marketplace scanner at a pinned commit
+        run: |
+          git init -q marketplace
+          git -C marketplace -c core.hooksPath=/dev/null fetch -q --depth 1 -- "$MARKETPLACE_REPO" "$MARKETPLACE_SHA"
+          test "$(git -C marketplace rev-parse 'FETCH_HEAD^{commit}')" = "$MARKETPLACE_SHA"
+          git -C marketplace -c core.hooksPath=/dev/null -c advice.detachedHead=false checkout -q FETCH_HEAD
+          cd marketplace && npm ci --ignore-scripts --no-audit --no-fund
+      - name: Run the security baseline
+        working-directory: marketplace
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          node --input-type=module -e '
+          import { runSecurityBaseline } from "./scripts/security-baseline-scanner.mjs";
+          const r = await runSecurityBaseline(
+            `https://github.com/${process.env.GITHUB_REPOSITORY}`, process.env.GITHUB_SHA,
+            { token: process.env.GITHUB_TOKEN, requiredPaths: ["manifest.json"] });
+          console.log(JSON.stringify({ outcome: r.outcome, findings: r.findings, capabilities: r.capabilities }, null, 2));
+          const clean = r.outcome === "passed" && !(r.findings || []).length && !(r.capabilities || []).length;
+          process.exit(clean ? 0 : 1);'
