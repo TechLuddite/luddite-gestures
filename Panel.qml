@@ -535,12 +535,14 @@ Panel {
           ColumnLayout {
             spacing: 0
             Text {
+              textFormat: Text.PlainText
               text: "Luddite Gestures"
               color: root.foreground
               font.family: root.fontFamily
               font.pixelSize: Style.font.title
             }
             Text {
+              textFormat: Text.PlainText
               text: "~/.config/hypr/input.lua"
               color: root.foreground
               opacity: 0.6
@@ -587,6 +589,7 @@ Panel {
             }
 
             Text {
+              textFormat: Text.PlainText
               visible: root.gestures.length === 0
               Layout.fillWidth: true
               text: root.readFailed
@@ -634,6 +637,7 @@ Panel {
             Repeater {
               model: root.fieldErrors
               Text {
+                textFormat: Text.PlainText
                 required property var modelData
                 Layout.fillWidth: true
                 text: "✗  " + modelData.text
@@ -647,6 +651,7 @@ Panel {
             Repeater {
               model: root.conflicts
               Text {
+                textFormat: Text.PlainText
                 required property var modelData
                 Layout.fillWidth: true
                 color: modelData.severity === "shadowed" ? root.urgent : root.foreground
@@ -668,6 +673,7 @@ Panel {
             }
 
             Text {
+              textFormat: Text.PlainText
               visible: root.unmanagedInBlock.length > 0
               Layout.fillWidth: true
               color: root.urgent
@@ -691,6 +697,7 @@ Panel {
             }
 
             Text {
+              textFormat: Text.PlainText
               visible: root.unmanaged.length > 0
               Layout.fillWidth: true
               text: "Also in input.lua, outside the block this panel owns. Shown so conflicts make sense; never edited or removed."
@@ -704,6 +711,7 @@ Panel {
             Repeater {
               model: root.unmanaged
               Text {
+                textFormat: Text.PlainText
                 required property var modelData
                 Layout.fillWidth: true
                 color: root.foreground
@@ -735,12 +743,14 @@ Panel {
                   Layout.fillWidth: true
                   spacing: 0
                   Text {
+                    textFormat: Text.PlainText
                     text: modelData.unit ? modelData.label + " (" + modelData.unit + ")" : modelData.label
                     color: root.foreground
                     font.family: root.fontFamily
                     font.pixelSize: Style.font.body
                   }
                   Text {
+                    textFormat: Text.PlainText
                     text: modelData.help
                     color: root.foreground
                     opacity: 0.55
@@ -789,6 +799,7 @@ Panel {
           spacing: Style.spacing.sm
 
           Text {
+            textFormat: Text.PlainText
             Layout.fillWidth: true
             text: root.errorText !== "" ? root.errorText : root.statusText
             color: root.errorText !== "" ? root.urgent : root.foreground
