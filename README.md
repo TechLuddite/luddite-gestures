@@ -222,7 +222,7 @@ node test/run.js          # pure-JS tests for the renderer, parser and conflicts
 omarchy plugin validate . # the same checks the shell enforces at install
 ```
 
-[`CLAUDE.md`](CLAUDE.md) is the working-notes file: how facts about Hyprland get
+[`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md) is the working-notes file: how facts about Hyprland get
 measured rather than quoted, what the panel is and is not allowed to touch, and
 the QML traps that cost real time. Read it before changing how the block is
 written.
