@@ -180,6 +180,7 @@ Rectangle {
         spacing: Style.spacing.labelGap
 
         Text {
+          textFormat: Text.PlainText
           text: Schema.FIELDS.dispatch_args.label
           color: Qt.darker(row.foreground, 1.4)
           font.family: row.fontFamily
@@ -231,6 +232,7 @@ Rectangle {
         spacing: Style.spacing.labelGap
 
         Text {
+          textFormat: Text.PlainText
           text: Schema.FIELDS.workspace_name.label
           color: Qt.darker(row.foreground, 1.4)
           font.family: row.fontFamily
@@ -279,6 +281,7 @@ Rectangle {
         spacing: Style.spacing.labelGap
 
         Text {
+          textFormat: Text.PlainText
           text: Schema.FIELDS.zoom_level.label
           color: Qt.darker(row.foreground, 1.4)
           font.family: row.fontFamily
@@ -311,6 +314,7 @@ Rectangle {
         spacing: Style.spacing.labelGap
 
         Text {
+          textFormat: Text.PlainText
           text: "Twice, quickly"
           color: Qt.darker(row.foreground, 1.4)
           font.family: row.fontFamily
@@ -367,6 +371,7 @@ Rectangle {
         spacing: Style.spacing.labelGap
 
         Text {
+          textFormat: Text.PlainText
           text: Schema.FIELDS.double_hint.label
           color: Qt.darker(row.foreground, 1.4)
           font.family: row.fontFamily
